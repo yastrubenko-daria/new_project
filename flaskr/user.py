@@ -8,8 +8,11 @@ from http import HTTPStatus
 
 bp = Blueprint('user', __name__, url_prefix='/user')
 
+@bp.route('/')
+def index():
+    return render_template('index.html')
 
-@bp.get('/register')
+@bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method =="POST":
         userlogin = request.form['userlogin']
@@ -17,6 +20,7 @@ def register():
         surname = request.form['surname']
         age = request.form['age']
         password = request.form['password']
+
         db = get_db()
         error = None
         if not userlogin:
@@ -27,7 +31,7 @@ def register():
         if error is None:
             try:
                 db.execute(
-                    "INSERT INTO user (userlogin, username, surname, age, password) VALUES (?, ?)",
+                    "INSERT INTO user (userlogin, username, surname, age, password) VALUES (?, ?, ?, ?, ?)",
                     (userlogin, username, surname, age,  generate_password_hash(password)), #кодировка паролей
                 )
                 db.commit()
@@ -56,7 +60,7 @@ def login():
         if error is None:
             session.clear() # данные между запросами
             session['user_id'] = user['id']
-            return redirect(url_for('index'))
+            return redirect(url_for('user.account', user_id=user['id']))
         flash(error)
     return render_template('user/login.html')
 
@@ -71,12 +75,38 @@ def get_user(id):
 @bp.route('/account/<int:user_id>', methods=["GET", "POST"])
 def account(user_id):
     user = get_user(user_id)
+    return render_template('user/account.html', user=user, user_id=user['id'])
 
-    return render_template('user/account.html', user=user)
+@bp.route('/account/<int:user_id>/edit', methods=["GET", "POST"])
+def edit_account(user_id):
+    user=get_user(user_id)
+    if request.method == 'POST':
+        userlogin = request.form['userlogin']
+        username = request.form['username']
+        surname = request.form['surname']
+        age = request.form['age']
+        error = None
+        if not userlogin:
+            error = 'Userlogin is required.'
+        if error is not None:
+            flash(error)
+        else:
+            db = get_db()
+            db.execute('UPDATE user SET userlogin = ?, username = ?, surname = ?, age = ?'
+                ' WHERE id = ?',
+                (userlogin, username, surname, age, user_id))
+            db.commit()
+            return redirect(url_for("user.account", user_id=user['id']))  # отправление к входу
+    return render_template('user/edit.html', user=user, user_id=user['id'])
 
-@bp.post('/account/<int:user_id>/deleted')
+@bp.get('/account/<int:user_id>/deleted')
 def deleted(user_id):
-    user = get_user(user_id)
+    user=get_user(user_id)
+    login=user['userlogin']
+    db=get_db()
+    db.execute('DELETE FROM user WHERE id = ?', (user_id,))
+    db.commit()
+    return render_template('user/delete.html', login=login, user_id=user['id'])
 
 
 @bp.before_app_request
@@ -102,5 +132,6 @@ def login_required(view):
             return redirect(url_for('user.login'))
         return view(**kwargs)
     return wrapped_view
+
  #todo: get user lk
 

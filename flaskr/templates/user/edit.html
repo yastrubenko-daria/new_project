@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block header %}
-  <h1>Register</h1>
+  <h1>Edit</h1>
 {% endblock %}
 
 {% block content %}
@@ -14,9 +14,10 @@
     <input name="surname" id="surname" required><br>
     <label for="age">Age</label>
     <input name="age" id="age" required><br>
-    <label for="password">Password</label>
-    <input type="password" name="password" id="password" required><br>
-    <input type="submit" value="Register">
+    <input type="submit" value="Edit">
   </form>
-
+  <hr>
+  <li class="nav-item">
+      <a class="nav-link active" href="{{url_for('user.deleted', user_id=user['id']) }}">Delete</a>
+  </li>
 {% endblock %}
